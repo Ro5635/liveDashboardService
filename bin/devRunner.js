@@ -8,11 +8,12 @@ const app = require('../app');
 const debug = require('debug');
 const http = require('http');
 
+
 /**
  * Get port from environment and store in Express.
  */
 
-let port = normalizePort(process.env.PORT || '3300');
+let port = normalizePort(process.env.PORT || '5500');
 app.set('port', port);
 
 /**
@@ -20,6 +21,17 @@ app.set('port', port);
  */
 
 const server = http.createServer(app);
+
+const io = require('socket.io')(server, {
+    serveClient: true
+});
+
+// Enable a multi node socket.io environment
+const redis = require('socket.io-redis');
+io.adapter(redis({ host: 'localhost', port: 6379 }));
+
+// Use the WS Index router
+const wsIndexRouter = require('../WebsocketRoutes/indexRouterWS')(io);
 
 /**
  * Listen on provided port, on all network interfaces.
