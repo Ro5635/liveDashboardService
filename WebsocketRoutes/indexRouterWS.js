@@ -8,10 +8,12 @@
  */
 const redis = require("redis");
 const redisClient = redis.createClient();
-const logger = require('../Helpers/LogHelper').getLogger(__filename);
+const logger = require('../Helpers/logHelper').getLogger(__filename);
 
 redisClient.on("error", function (err) {
-    console.log("Error " + err);
+    logger.error('Redis request failed');
+    logger.error(err);
+
 });
 
 /**
@@ -34,6 +36,7 @@ async function getDashboardConnections(dashboardID) {
                 return reject(new Error('Redis request failed'));
             }
 
+            logger.info('Received dashboards connections from redis');
             return resolve(redisResponse);
 
         });
@@ -86,13 +89,6 @@ async function detachConnectionFromDashboard(connectionID, dashboardID) {
         })
     });
 }
-
-async function test() {
-    const a = await getDashboardConnections('dashboardID');
-    console.log(a);
-}
-
-test();
 
 const wsIndexRouter = function (socketIO) {
 
