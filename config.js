@@ -10,11 +10,16 @@ const defaultConfig = {
     AWS_API_CONFIG: {region: "local", endpoint: 'http://localhost:8000'}
 };
 
-const dev = {};
+const dev = {
+    JWTSigningKey: process.env.JWTSigningKey
+
+};
 
 const test = {};
 
-const prod = {};
+const prod = {
+    JWTSigningKey: process.env.JWTSigningKey
+};
 
 const config = {
     dev,

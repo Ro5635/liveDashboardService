@@ -9,6 +9,9 @@
 const redis = require("redis");
 const redisClient = redis.createClient();
 const logger = require('../Helpers/logHelper').getLogger(__filename);
+const config = require('../config');
+
+const socketioJWT = require('socketio-jwt');
 
 redisClient.on("error", function (err) {
     logger.error('Redis request failed');
@@ -70,6 +73,15 @@ async function attachConnectionToDashboard(connectionID, dashboardID) {
     });
 }
 
+/**
+ * detachConnectionFromDashboard
+ *
+ * Removes a connection from a dashboard with the passed dashboardID
+ *
+ * @param connectionID      string
+ * @param dashboardID       string
+ * @return {Promise<*>}
+ */
 async function detachConnectionFromDashboard(connectionID, dashboardID) {
     return new Promise((resolve, reject) => {
         logger.info('requesting connection removal from supplied dashboard');
@@ -90,13 +102,43 @@ async function detachConnectionFromDashboard(connectionID, dashboardID) {
     });
 }
 
+
+/**
+ * userHasDashboardAccess
+ *
+ * Returns boolean dictating a user has access to a dashboard
+ *
+ * @param userID            string
+ * @param dashboardID       string
+ * @returns hasAccess       boolean
+ */
+function userHasDashboardAccess(userID, dashboardID) {
+    console.error('userHasDashboardAccess CHECK NOT IMPLEMENTED YET!');
+    return true;
+
+}
+
+
 const wsIndexRouter = function (socketIO) {
 
-    socketIO.on('connection', function (socket) {
-        console.log('a user connected');
 
-        // uncaught promise...
-        attachConnectionToDashboard(socket.id, 'dash1');
+    // Ensure that there is reasonable content to the JWT signing key
+    if (!config.JWTSigningKey || config.JWTSigningKey.length < 5) {
+        logger.error('Minimal JWTSigningKey requirements not met');
+        logger.error('This is a fatal error');
+        logger.error('Aborting');
+        process.exit(1);
+
+    }
+
+    socketIO.sockets
+        .on('connection', socketioJWT.authorize({
+            secret: config.JWTSigningKey,
+            timeout: 15000 // 15 seconds to send the authentication message
+        })).on('authenticated', async function (socket) {
+        const trustedPayload = socket.decoded_token;
+        logger.info(`Socket successfully authenticated, userID: ${trustedPayload.userID}`);
+
 
         // socketIO.emit('dash', { send: 'to all from server' });
         // socket.broadcast.to(id).emit('my message', msg);
@@ -104,11 +146,18 @@ const wsIndexRouter = function (socketIO) {
         socket.on('updateDash', async function (payload) {
             logger.info('updateDash websocket resource called');
 
+            // Put the latest config to the database
+            // TODO: Persist the dashboard structure outside of redis...
+
+
+
+            // Update all of the subscribed connections
+
             const dashboardConnections = await getDashboardConnections('dash1');
 
             for (let connectionID of dashboardConnections) {
 
-                if (socketIO.sockets.sockets[connectionID]){
+                if (socketIO.sockets.sockets[connectionID]) {
                     socket.broadcast.to(connectionID).emit('dash', payload);
 
                 } else {
@@ -123,18 +172,52 @@ const wsIndexRouter = function (socketIO) {
 
         });
 
+        socket.on('getDash', async function (payload) {
+            logger.info('getDash websocket resource called');
+
+            const dashboardConnections = await getDashboardConnections('dash1');
+
+            for (let connectionID of dashboardConnections) {
+
+                if (socketIO.sockets.sockets[connectionID]) {
+                    socket.broadcast.to(connectionID).emit('dash', !!);
+
+                } else {
+                    // Connection is no longer open, remove this connection from the dash
+                    logger.info('Attempted to send down a closed connection');
+                    logger.info('Requesting removal of connection from active dashboard');
+
+                    await detachConnectionFromDashboard(connectionID, 'dash1');
+
+                }
+            }
+
+        });
+
+
+
         socket.on('registerToDashboard', async function (payload) {
             logger.info('Request received to register to a dashboard');
 
-            try {
-                await attachConnectionToDashboard(socket.id, 'dash1');
+            logger.info(`userID: ${trustedPayload.userID} has requested to be registered to dashboardID: ${payload.dashboard}`);
 
-            } catch (err) {
-                logger.error('Call failed to register socket to a dashboard');
-                logger.error(err);
+            if (userHasDashboardAccess(payload.userID, payload.dashboard)) {
+                try {
+                    await attachConnectionToDashboard(socket.id, 'dash1');
+
+
+                } catch (err) {
+                    logger.error('Call failed to register socket to a dashboard');
+                    logger.error(err);
+
+                }
+
+            } else {
+                logger.error(`userID: ${trustedPayload.userID} does not have rights to access the requested dashboard`);
+                logger.error(`Dropping request to unauthorised resource`);
+
 
             }
-
         });
 
         socket.on('disconnect', (reason) => {
@@ -145,8 +228,6 @@ const wsIndexRouter = function (socketIO) {
 
 
     });
-
-
 };
 
 
