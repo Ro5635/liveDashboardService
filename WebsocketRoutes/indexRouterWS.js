@@ -6,117 +6,12 @@
  * socketio so that thsi can be later ported to AWS serverless.
  *
  */
-const redis = require("redis");
-const redisClient = redis.createClient();
+
 const logger = require('../Helpers/logHelper').getLogger(__filename);
 const config = require('../config');
+const DashboardModel = require('../Models/DashboardModel');
 
 const socketioJWT = require('socketio-jwt');
-
-redisClient.on("error", function (err) {
-    logger.error('Redis request failed');
-    logger.error(err);
-
-});
-
-/**
- * getDashboardConnections
- *
- * Get all the connections associated with the passed dashboard
- *
- * @param dashboardID
- * @return {Promise<*>}
- */
-async function getDashboardConnections(dashboardID) {
-    return new Promise((resolve, reject) => {
-        logger.info('Calling Redis for connections registered to dashboard');
-
-        redisClient.smembers(dashboardID, (err, redisResponse) => {
-            if (err) {
-                logger.error('Failing in calling redis');
-                logger.error(err);
-
-                return reject(new Error('Redis request failed'));
-            }
-
-            logger.info('Received dashboards connections from redis');
-            return resolve(redisResponse);
-
-        });
-    });
-}
-
-/**
- * attachConnectionToDashboard
- *
- * Attach a connection to a dashboard
- *
- * @param connectionID
- * @param dashboardID
- * @return {Promise<*>}
- */
-async function attachConnectionToDashboard(connectionID, dashboardID) {
-    return new Promise((resolve, reject) => {
-        logger.info('Calling Redis to add new Connection to dashboard');
-
-        redisClient.sadd(dashboardID, connectionID, (err, redisResponse) => {
-            if (err) {
-                logger.error('Failed to put new connectionID to a dashboard in Redis');
-
-                return reject(new Error('Error putting new Connection to dashboard'));
-            }
-
-            logger.info('Completed put of new connection to dashboard');
-            return resolve();
-
-        });
-    });
-}
-
-/**
- * detachConnectionFromDashboard
- *
- * Removes a connection from a dashboard with the passed dashboardID
- *
- * @param connectionID      string
- * @param dashboardID       string
- * @return {Promise<*>}
- */
-async function detachConnectionFromDashboard(connectionID, dashboardID) {
-    return new Promise((resolve, reject) => {
-        logger.info('requesting connection removal from supplied dashboard');
-
-        redisClient.srem(dashboardID, connectionID, (err, redisResponse) => {
-            if (err) {
-                logger.error('Error in calling redis to SPOP a connection from the dashboard');
-                logger.error(err);
-
-                return reject(new Error('Failed to remove connection from dashboard'));
-            }
-
-            logger.info('Successfully removed connectionID from dashboard');
-
-            return resolve();
-
-        })
-    });
-}
-
-
-/**
- * userHasDashboardAccess
- *
- * Returns boolean dictating a user has access to a dashboard
- *
- * @param userID            string
- * @param dashboardID       string
- * @returns hasAccess       boolean
- */
-function userHasDashboardAccess(userID, dashboardID) {
-    console.error('userHasDashboardAccess CHECK NOT IMPLEMENTED YET!');
-    return true;
-
-}
 
 
 const wsIndexRouter = function (socketIO) {
@@ -150,10 +45,9 @@ const wsIndexRouter = function (socketIO) {
             // TODO: Persist the dashboard structure outside of redis...
 
 
-
             // Update all of the subscribed connections
 
-            const dashboardConnections = await getDashboardConnections('dash1');
+            const dashboardConnections = await DashboardModel.getDashboardConnections(payload.dashboardID);
 
             for (let connectionID of dashboardConnections) {
 
@@ -165,7 +59,7 @@ const wsIndexRouter = function (socketIO) {
                     logger.info('Attempted to send down a closed connection');
                     logger.info('Requesting removal of connection from active dashboard');
 
-                    await detachConnectionFromDashboard(connectionID, 'dash1');
+                    await DashboardModel.detachConnectionFromDashboard(connectionID, 'dash1');
 
                 }
             }
@@ -175,54 +69,65 @@ const wsIndexRouter = function (socketIO) {
         socket.on('getDash', async function (payload) {
             logger.info('getDash websocket resource called');
 
-            const dashboardConnections = await getDashboardConnections('dash1');
+            // const dashboardConnections = await getDashboardConnections('dash1');
+            //
+            // for (let connectionID of dashboardConnections) {
+            //
+            //     if (socketIO.sockets.sockets[connectionID]) {
+            //         socket.broadcast.to(connectionID).emit('dash', !!);
+            //
+            //     } else {
+            //         // Connection is no longer open, remove this connection from the dash
+            //         logger.info('Attempted to send down a closed connection');
+            //         logger.info('Requesting removal of connection from active dashboard');
+            //
+            //         await detachConnectionFromDashboard(connectionID, 'dash1');
+            //
+            //     }
+            // }
 
-            for (let connectionID of dashboardConnections) {
-
-                if (socketIO.sockets.sockets[connectionID]) {
-                    socket.broadcast.to(connectionID).emit('dash', !!);
-
-                } else {
-                    // Connection is no longer open, remove this connection from the dash
-                    logger.info('Attempted to send down a closed connection');
-                    logger.info('Requesting removal of connection from active dashboard');
-
-                    await detachConnectionFromDashboard(connectionID, 'dash1');
-
-                }
-            }
+            // TODO: Implement getDash path
+            logger.error('Called getDash path not implemented');
 
         });
-
 
 
         socket.on('registerToDashboard', async function (payload) {
             logger.info('Request received to register to a dashboard');
 
-            logger.info(`userID: ${trustedPayload.userID} has requested to be registered to dashboardID: ${payload.dashboard}`);
-
-            if (userHasDashboardAccess(payload.userID, payload.dashboard)) {
-                try {
-                    await attachConnectionToDashboard(socket.id, 'dash1');
-
-
-                } catch (err) {
-                    logger.error('Call failed to register socket to a dashboard');
-                    logger.error(err);
-
-                }
+            // Basic Validation
+            if (!payload.dashboardID) {
+                logger.error('No dashboardID supplied, cannot register to dashboard');
+                logger.error('Dropping invalid request');
 
             } else {
-                logger.error(`userID: ${trustedPayload.userID} does not have rights to access the requested dashboard`);
-                logger.error(`Dropping request to unauthorised resource`);
+
+                logger.info(`userID: ${trustedPayload.userID} has requested to be registered to dashboardID: ${payload.dashboardID}`);
+
+                if (DashboardModel.userHasDashboardAccess(trustedPayload.userID, payload.dashboardID, trustedPayload)) {
+                    try {
+                        await DashboardModel.attachConnectionToDashboard(socket.id, payload.dashboardID);
+                        logger.info('Attached connection to dashboard successfully');
 
 
+                    } catch (err) {
+                        logger.error('Call failed to register socket to a dashboard');
+                        logger.error(err);
+
+                    }
+
+                } else {
+                    logger.error(`userID: ${trustedPayload.userID} does not have rights to access the requested dashboard`);
+                    logger.error(`Dropping request to unauthorised resource`);
+
+
+                }
             }
         });
 
         socket.on('disconnect', (reason) => {
-            console.log('A disconnect event was found...');
-            console.error('Need some handling here...')
+            logger.info('A connection disconnected');
+            logger.info(`Disconnect reason: ${reason}`);
 
         });
 
