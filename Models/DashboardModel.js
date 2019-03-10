@@ -111,13 +111,32 @@ exports.detachConnectionFromDashboard = async function (connectionID, dashboardI
  *
  * @param userID                string
  * @param dashboardID           string
- * @param truestedJWTPayload optional  jwt payload object
+ * @param trustedJWTPayload optional  jwt payload object
  * @returns hasAccess           boolean
  */
-exports.userHasDashboardAccess = function (userID, dashboardID, truestedJWTPayload = {}) {
-    console.error('userHasDashboardAccess CHECK NOT IMPLEMENTED YET!');
-    return true;
+exports.userHasDashboardAccess = function (userID, dashboardID, trustedJWTPayload = {}) {
+    console.info('Checking user has access to requested dashboard resource');
 
+    if (trustedJWTPayload === {} || !trustedJWTPayload ) {
+        logger.error('No trusted JWT payload provided');
+        logger.error('Requesting user permissions from auth service not yet supported');
+        logger.error('Aborting');
+
+        return false;
+    }
+
+    const authorisedDashboards = trustedJWTPayload.jwtPayload.dashboards;
+
+    // log out the result and return
+    if (authorisedDashboards.includes(dashboardID)) {
+        logger.info('User has required access permissions to requested dashboard');
+
+        return true;
+    } else {
+        logger.info('User does not have required permissions to access the requested dashboard');
+
+        return false;
+    }
 };
 
 
