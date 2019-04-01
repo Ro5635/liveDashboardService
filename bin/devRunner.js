@@ -28,7 +28,7 @@ const io = require('socket.io')(server, {
 
 // Enable a multi node socket.io environment
 const redis = require('socket.io-redis');
-io.adapter(redis({ host: 'localhost', port: 6379 }));
+io.adapter(redis({ host: '127.0.0.1', port: 6379 }));
 
 // Use the WS Index router
 const wsIndexRouter = require('../WebsocketRoutes/indexRouterWS')(io);

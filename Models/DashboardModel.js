@@ -5,7 +5,7 @@
 
 const logger = require('../Helpers/logHelper').getLogger(__filename);
 const redis = require("redis");
-const redisClient = redis.createClient();
+const redisClient = redis.createClient('6379','127.0.0.1');
 
 
 /**
@@ -17,6 +17,16 @@ redisClient.on("error", function (err) {
     logger.error(err);
 
 });
+
+redisClient.on('connect', function() {
+    console.log('Redis client connected');
+});
+
+console.log('DOING TEST');
+redisClient.set("string key", "string val", redis.print);
+redisClient.hset("hash key", "hashtest 1", "some value", redis.print);
+
+
 
 /**
  * getDashboardConnections

@@ -16,16 +16,5 @@ router.get('/', function (req, res, next) {
 
 });
 
-router.post('/:roomName', function (req, res, next) {
-    const roomName = req.params.roomName;
-    const message = req.body.message;
-
-    logger.debug(`roomName called as ${roomName} and message: ${message}`);
-
-    req.socketio;
-
-    return res.sendResponse(200, {msg: 'RoomRequest Hit'});
-
-});
 
 module.exports = router;

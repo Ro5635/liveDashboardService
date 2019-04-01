@@ -38,12 +38,11 @@ const wsIndexRouter = function (socketIO) {
         // socketIO.emit('dash', { send: 'to all from server' });
         // socket.broadcast.to(id).emit('my message', msg);
 
-        socket.on('updateDash', async function (payload) {
-            logger.info('updateDash websocket resource called');
+        socket.on('updateDashWidgets', async function (payload) {
+            logger.info('updateDashWidgets websocket resource called');
 
             // Put the latest config to the database
             // TODO: Persist the dashboard structure outside of redis...
-
 
             // Update all of the subscribed connections
 
@@ -52,14 +51,43 @@ const wsIndexRouter = function (socketIO) {
             for (let connectionID of dashboardConnections) {
 
                 if (socketIO.sockets.sockets[connectionID]) {
-                    socket.broadcast.to(connectionID).emit('dash', payload);
+
+                    socket.broadcast.to(connectionID).emit('dashWidgetUpdates', payload);
 
                 } else {
                     // Connection is no longer open, remove this connection from the dash
                     logger.info('Attempted to send down a closed connection');
                     logger.info('Requesting removal of connection from active dashboard');
 
-                    await DashboardModel.detachConnectionFromDashboard(connectionID, 'dash1');
+                    await DashboardModel.detachConnectionFromDashboard(connectionID, payload.dashboardID);
+
+                }
+            }
+
+        });
+
+        socket.on('updateDashWidget', async function (payload) {
+            logger.info('updateDashWidget websocket resource called');
+
+            // Put the latest config to the database
+            // TODO: Persist the dashboard structure outside of redis...
+
+            // Update all of the subscribed connections
+
+            const dashboardConnections = await DashboardModel.getDashboardConnections(payload.dashboardID);
+
+            for (let connectionID of dashboardConnections) {
+
+                if (socketIO.sockets.sockets[connectionID]) {
+
+                    socket.broadcast.to(connectionID).emit(`dashWidgetUpdate-${payload.widgetID}`, payload);
+
+                } else {
+                    // Connection is no longer open, remove this connection from the dash
+                    logger.info('Attempted to send down a closed connection');
+                    logger.info('Requesting removal of connection from active dashboard');
+
+                    await DashboardModel.detachConnectionFromDashboard(connectionID, payload.dashboardID);
 
                 }
             }
@@ -94,6 +122,7 @@ const wsIndexRouter = function (socketIO) {
 
         socket.on('registerToDashboard', async function (payload) {
             logger.info('Request received to register to a dashboard');
+            console.log('@@@USER REGISTERED@@@');
 
             // Basic Validation
             if (!payload.dashboardID) {
@@ -108,6 +137,8 @@ const wsIndexRouter = function (socketIO) {
                     try {
                         await DashboardModel.attachConnectionToDashboard(socket.id, payload.dashboardID);
                         logger.info('Attached connection to dashboard successfully');
+                        logger.info('Emitting registrationCompleted to caller');
+                        socket.emit('registrationCompleted', {registeredToDash: payload.dashboardID});
 
 
                     } catch (err) {
