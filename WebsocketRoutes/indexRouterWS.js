@@ -66,6 +66,27 @@ const wsIndexRouter = function (socketIO) {
 
         });
 
+
+        socket.on('sendMessage', async function (payload) {
+            logger.info('updateDashWidgets websocket resource called');
+            var twilio = require('twilio');
+            const accountSid = 'AC0e9ba3d2252b7fe50b686240b3248fd3';
+            const authToken = process.env.twilioAuth;
+            const client = require('twilio')(accountSid, authToken);
+
+            client.messages
+                .create({
+                    body: 'This is the ship that made the Kessel Run in fourteen parsecs?',
+                    from: '+15017122661',
+                    to: '+15558675310'
+                })
+                .then(message => console.log(message.sid));
+
+
+        });
+
+
+
         socket.on('updateDashWidget', async function (payload) {
             logger.info('updateDashWidget websocket resource called');
 
