@@ -94,6 +94,32 @@ const wsIndexRouter = function (socketIO) {
 
         });
 
+        socket.on('boardRequest', async function (payload) {
+            logger.info('boardRequest websocket resource called');
+
+            // Put the latest config to the database
+            // Update all of the subscribed connections
+
+            const dashboardConnections = await DashboardModel.getDashboardConnections(payload.dashboardID);
+
+            for (let connectionID of dashboardConnections) {
+
+                if (socketIO.sockets.sockets[connectionID]) {
+
+                    socket.broadcast.to(connectionID).emit(`boardUpdate-${payload.dashboardID}`, payload);
+
+                } else {
+                    // Connection is no longer open, remove this connection from the dash
+                    logger.info('Attempted to send down a closed connection');
+                    logger.info('Requesting removal of connection from active dashboard');
+
+                    await DashboardModel.detachConnectionFromDashboard(connectionID, payload.dashboardID);
+
+                }
+            }
+
+        });
+
         socket.on('getDash', async function (payload) {
             logger.info('getDash websocket resource called');
 
