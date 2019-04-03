@@ -3,7 +3,7 @@ const path = require('path');
 const morganLogger = require('morgan');
 const bodyParser = require('body-parser');
 
-const logger = require('./Helpers/LogHelper').getLogger(__filename);
+const logger = require('./Helpers/logHelper').getLogger(__filename);
 const responseMiddleware =  require('./Middleware/responseMiddleware');
 
 // Setup Routers

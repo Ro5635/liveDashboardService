@@ -22,7 +22,7 @@
   "devDependencies": {},
   "scripts": {
     "test": "nyc ./node_modules/.bin/mocha --recursive --timeout=10000 --exit --reporter mocha-junit-reporter --reporter-options mochaFile=reportsMount/reports/mocha/test-results.xml",
-    "run-dev": "node ./bin/devRunner.js"
+    "run-dev": "npm install && node ./bin/devRunner.js"
   },
   "author": "",
   "license": "ISC"
