@@ -5,7 +5,7 @@
 
 const logger = require('../Helpers/logHelper').getLogger(__filename);
 const redis = require("redis");
-const redisClient = redis.createClient('6379','127.0.0.1');
+const redisClient = redis.createClient('6379','redis');
 
 
 /**

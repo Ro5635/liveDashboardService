@@ -9,6 +9,21 @@ services:
      image: redis
      ports:
        - "6379:6379"
+  livedashboard:
+#    image: node:10
+    build: .
+    ports:
+      - "5500:5500"
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=dev
+#      - JWTSigningKey=
+      - JWTSigningKey=${JWTSigningKey}
+    volumes:
+    - ./:/home/node/app
+    command: "npm run-script run-dev"
+
 #  dynamodb-local:
 #    image: amazon/dynamodb-local
 #    entrypoint: java
