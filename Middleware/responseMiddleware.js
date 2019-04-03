@@ -3,7 +3,7 @@
  *
  * Places sendResponse function on the Express res object, this adds additional logging
  */
-const logger = require('../Helpers/LogHelper').getLogger(__filename);
+const logger = require('../Helpers/logHelper').getLogger(__filename);
 
 /**
  * sendResponseFactory
