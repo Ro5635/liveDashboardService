@@ -20,6 +20,7 @@ services:
       - NODE_ENV=dev
 #      - JWTSigningKey=
       - JWTSigningKey=${JWTSigningKey}
+      - twilioAuth=${twilioAuth}
     volumes:
     - ./:/home/node/app
     command: "npm run-script run-dev"
