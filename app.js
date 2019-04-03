@@ -11,6 +11,13 @@ const index = require('./Routers/index');
 
 const app = express();
 
+// Check for env environment variable
+if (!process.env.NODE_ENV) {
+    logger.error('Environment env variable not set');
+    logger.error('NODE_ENV is required, Aborting');
+    process.exit(1);
+}
+
 
 // Middleware
 app.use(morganLogger('dev'));

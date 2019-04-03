@@ -1,31 +1,44 @@
 # Docker-compose environment for development use
-#
-# Creates DynanmoDB service and runs a configurator to call the create the creation of the project artifacts
-# this is defined in localDynamoDBConfig.sh, this does cause a whole load of implicit dependency's and couplings
-#
-# DynamoDB is set to use sharedDB, this means all regions and access keys get the same DB's
-# this is so that dev does not need to ensure that region and access key match.
-#
+##
 #
 # Robert Curran 2019
 
 version: '3'
 services:
-  dynamodb-local:
-    image: amazon/dynamodb-local
-    entrypoint: java
-    command: "-jar DynamoDBLocal.jar -sharedDb"
-    restart: always
+  redis:
+     image: redis
+     ports:
+       - "6379:6379"
+  livedashboard:
+#    image: node:10
+    build: .
     ports:
-    - "8000:8000"
-  dynamoDB-configurator:
-    image: ro5635/awscli
-    volumes:
-    - ./localDynamoDBConfig.sh:/hostScript/script.sh
+      - "5500:5500"
+    user: "node"
+    working_dir: /home/node/app
     environment:
-      # Set some empty credentials, they need to exist but not validated for local use
-      - AWS_ACCESS_KEY_ID=EXAMPLEID_EXAMPLEID
-      - AWS_SECRET_ACCESS_KEY=EXAMPLEKEY/EXAMPLEKEY/EXAMPLEKEY
-      - AWS_DEFAULT_REGION=local
-    depends_on:
-      - dynamodb-local
+      - NODE_ENV=dev
+#      - JWTSigningKey=
+      - JWTSigningKey=${JWTSigningKey}
+    volumes:
+    - ./:/home/node/app
+    command: "npm run-script run-dev"
+
+#  dynamodb-local:
+#    image: amazon/dynamodb-local
+#    entrypoint: java
+#    command: "-jar DynamoDBLocal.jar -sharedDb"
+#    restart: always
+#    ports:
+#    - "8000:8000"
+#  dynamoDB-configurator:
+#    image: ro5635/awscli
+#    volumes:
+#    - ./localDynamoDBConfig.sh:/hostScript/script.sh
+#    environment:
+#      # Set some empty credentials, they need to exist but not validated for local use
+#      - AWS_ACCESS_KEY_ID=EXAMPLEID_EXAMPLEID
+#      - AWS_SECRET_ACCESS_KEY=EXAMPLEKEY/EXAMPLEKEY/EXAMPLEKEY
+#      - AWS_DEFAULT_REGION=local
+#    depends_on:
+#      - dynamodb-local

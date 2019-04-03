@@ -1,5 +1,5 @@
 {
-  "name": "dashboardservice",
+  "name": "livedashboardservice",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -14,8 +14,10 @@
     "mocha-junit-reporter": "^1.18.0",
     "morgan": "^1.9.1",
     "nyc": "^13.3.0",
+    "redis": "^2.8.0",
     "socket.io": "^2.2.0",
-    "socket.io-redis": "^5.2.0"
+    "socket.io-redis": "^5.2.0",
+    "socketio-jwt": "^4.5.0"
   },
   "devDependencies": {},
   "scripts": {

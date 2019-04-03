@@ -6,7 +6,7 @@
 
 const express = require('express');
 const router = express.Router();
-const logger = require('../Helpers/LogHelper').getLogger(__filename);
+const logger = require('../Helpers/logHelper').getLogger(__filename);
 const apiVersion = require('../package').version;
 
 
@@ -15,5 +15,6 @@ router.get('/', function (req, res, next) {
     return res.sendResponse(200, {msg: 'Service API', version: apiVersion});
 
 });
+
 
 module.exports = router;
